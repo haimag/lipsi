@@ -2,12 +2,11 @@
  * Copyright: 2017, Technical University of Denmark, DTU Compute
  * Author: Martin Schoeberl (martin@jopdesign.com)
  * License: Simplified BSD License
- * 
+ *
  * Test Lipsi.
  */
 
 package lipsi
-
 
 import chisel3._
 import chisel3.iotesters.PeekPokeTester
@@ -15,7 +14,7 @@ import chisel3.iotesters.PeekPokeTester
 class LipsiTester(dut: Lipsi) extends PeekPokeTester(dut) {
 
   var run = true
-  var maxInstructions = 30
+  var maxInstructions = 300
   while(run) {
     peek(dut.io.dbg.pc)
     peek(dut.io.dbg.accu)
@@ -32,8 +31,10 @@ class LipsiTester(dut: Lipsi) extends PeekPokeTester(dut) {
 
 object LipsiTester {
   def main(args: Array[String]): Unit = {
-    println("Testing Lipsi")
-    iotesters.Driver.execute(Array[String](), () => new Lipsi(args(0))) {
+    println("\n>>> Testing Lipsi")
+    val prog = lipsi.util.Assembler.getProgram(args(0))
+
+    iotesters.Driver.execute(Array("--generate-vcd-output", "on", "--target-dir", "test_run_dir/", "--top-name", "lipsi"), () => new Lipsi(args(0))) {
       c => new LipsiTester(c)
     }
       /* Chisel 2

@@ -2,7 +2,7 @@
  * Copyright: 2017, Technical University of Denmark, DTU Compute
  * Author: Martin Schoeberl (martin@jopdesign.com)
  * License: Simplified BSD License
- * 
+ *
  * A software simulator of Lipsi, a very tiny processor.
  */
 
@@ -10,9 +10,9 @@ package lipsi.sim
 
 import lipsi.util._
 
-class LipsiSim(asm: String) {
+class LipsiSim(val prog: Array[Int]) {
 
-  val prog = Assembler.getProgram(asm)
+  // val prog = Assembler.getProgram(asm)
   // The complete processor state.
   // We ignore for now using Int instead of bytes.
   // We will mask out the bits when it matters.
@@ -22,6 +22,7 @@ class LipsiSim(asm: String) {
 
   var accuNext = 0
   var delayOne = false
+  var delayTwo = false
   var delayUpdate = false
   var delayTwoUpdate = false
   var noPcIncr = false
@@ -46,7 +47,11 @@ class LipsiSim(asm: String) {
 
   def step(): Unit = {
 
-    if (delayOne) {
+    if (delayTwo) {
+      delayTwo = false
+      delayOne = true
+      noPcIncr = true
+    } else if (delayOne) {
       delayOne = false
     } else if (delayUpdate) {
       accu = accuNext
@@ -63,8 +68,12 @@ class LipsiSim(asm: String) {
         noPcIncr = true
       } else {
         ((instr >> 4) & 0x7) match {
-          case 0x0 => mem((instr & 0x0f) + 256) = accu
-          case 0x1 =>
+          case 0x0 => {
+            mem((instr & 0x0f) + 256) = accu
+            delayOne = true
+            noPcIncr = true
+          }
+          case 0x1 => { noPcIncr = true }
           case 0x2 => {
             accuNext = mem(mem((instr & 0x0f) + 256) + 256)
             delayTwoUpdate = true
@@ -72,7 +81,7 @@ class LipsiSim(asm: String) {
           }
           case 0x3 => {
             mem(mem((instr & 0x0f) + 256) + 256) = accu
-            delayOne = true
+            delayTwo = true
             noPcIncr = true
           }
           case 0x4 => {
@@ -87,8 +96,8 @@ class LipsiSim(asm: String) {
             }
             delayOne = true
           }
-          case 0x6 =>
-          case 0x7 =>
+          case 0x6 => { noPcIncr = true }
+          case 0x7 => { noPcIncr = if (instr== 0xf0) false else true }
         }
       }
 
@@ -110,7 +119,8 @@ class LipsiSim(asm: String) {
 
 object LipsiSim extends App {
 
-  val lsim = new LipsiSim(args(0))
+  val prog = Assembler.getProgram(args(0))
+  val lsim = new LipsiSim(prog)
 
   while (lsim.run) {
     lsim.step

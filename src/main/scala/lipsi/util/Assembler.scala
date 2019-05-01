@@ -7,7 +7,7 @@
 package lipsi.util
 
 import scala.io.Source
-//import Chisel._
+import java.io.PrintWriter
 
 object Assembler {
 
@@ -59,8 +59,8 @@ object Assembler {
     }
 
     for (line <- source.getLines()) {
-      if (!pass2) println(line)
-      val tokens = line.trim.split(" ")
+      // if (!pass2) println(line)
+      val tokens = line.trim.split("\\s+")
       // println(s"length: ${tokens.length}")
       // tokens.foreach(println)
       val Pattern = "(.*:)".r
@@ -99,10 +99,12 @@ object Assembler {
 
       instr match {
         case (a: Int) => {
+          if(pass2) println(f"$pc%4x: $a%02x     // ${line.trim}")
           program = a :: program
           pc += 1
         }
         case (a: Int, b: Int) => {
+          if(pass2) println(f"$pc%4x: $a%02x  $b%02x // ${line.trim}")
           program = a :: program
           program = b :: program
           pc += 2
@@ -111,10 +113,11 @@ object Assembler {
       }
     }
     val finalProg = program.reverse.toArray
-    if (!pass2) {
-      println(s"The program:")
-      finalProg.foreach(printf("0x%02x ", _))
-      println()
+    if (pass2) {
+      println("- gen hex: rom.hex:")
+      val rom = new PrintWriter("rom.hex")
+      finalProg.foreach(x => rom.println(f"$x%02x"))
+      rom.close()
     }
     finalProg
   }
